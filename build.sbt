@@ -18,6 +18,8 @@ libraryDependencies ++= Seq(
 
   "org.apache.spark" %% "spark-catalyst" % sparkVersion,
 
-  "org.apache.spark" %% "spark-streaming" % sparkVersion
+  "org.apache.spark" %% "spark-streaming" % sparkVersion,
+
+  "org.specs2" %% "specs2-core" % "3.9.5" % "test"
 
 )
