@@ -24,12 +24,17 @@ object SparkCheckpointTest extends App with  Utils {
 
 
 
-/*  (2) MapPartitionsRDD[3] at mapValues at SparkCheckpointTest.scala:17 []
+/* Before CheckPoint
+(2) MapPartitionsRDD[3] at mapValues at SparkCheckpointTest.scala:17 []
   |  ShuffledRDD[2] at reduceByKey at SparkCheckpointTest.scala:13 []
   +-(2) MapPartitionsRDD[1] at map at SparkCheckpointTest.scala:13 []
   |  ParallelCollectionRDD[0] at parallelize at SparkCheckpointTest.scala:12 []*/
 
 
+  /* After CheckPoint
+  (2) MapPartitionsRDD[3] at mapValues at SparkCheckpointTest.scala:17 []
+ |  ReliableCheckpointRDD[4] at count at SparkCheckpointTest.scala:21 []
+  */
 /*  val rddChk  = spark.sparkContext.parallelize(1 to 100)
     .map(x => (x % 3 , 1)).reduceByKey(_ + _ )
 

@@ -2,9 +2,9 @@ package com.babarnil.spark
 
 import java.io.ByteArrayOutputStream
 
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.{ArrayType, StructType}
+import org.apache.spark.sql.types.{ArrayType, DataType, StructType}
 
 trait Utils {
 
@@ -81,6 +81,39 @@ trait Utils {
       case _ => col(f.name).as(f.name.toLowerCase())
     })
     df.select(columns:_*)
+  }
+
+
+  def flattenDataFrameMultiPass(df: DataFrame, seperator : String = "_") : DataFrame = {
+    def isFlatteningRequired(schema : StructType) : Boolean =
+      schema.fields.exists(f => f.dataType.isInstanceOf[ArrayType] || f.dataType.isInstanceOf[StructType])
+
+    def flatten(schema : StructType, parent : Column = null, prefix : String = null,
+                aggCols : Array[(DataType, Column)] = Array()) : Array[(DataType, Column)] = {
+      val resultArr = schema.fields.foldLeft(aggCols)(
+        (columns, field) => {
+          val currCol = if(parent == null) col(field.name) else parent.getItem(field.name)
+          val flattenedName = if(prefix == null) field.name else s"$prefix$seperator${field.name}"
+          field.dataType match {
+            case struct : StructType => flatten(struct, currCol,flattenedName,columns)
+
+            case arrayType: ArrayType =>
+              if(columns.exists(_._1.isInstanceOf[ArrayType])) {
+                columns :+ ((arrayType,currCol.as(flattenedName)))
+              } else {
+                columns :+ ((arrayType, explode_outer(currCol).as(flattenedName)))
+              }
+            case dt => columns :+ ((dt, currCol.as(flattenedName)))
+          }
+        })
+      resultArr
+    }
+    var flattenedDf = df
+    while (isFlatteningRequired(flattenedDf.schema)) {
+      val newColumns = flatten(flattenedDf.schema, null, null).map(_._2)
+      flattenedDf = flattenedDf.select(newColumns:_*)
+    }
+    flattenedDf
   }
 
 }
